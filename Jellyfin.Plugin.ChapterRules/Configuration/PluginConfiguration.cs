@@ -26,6 +26,18 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool EnableOutro { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether a segment type is skipped for an episode when
+    /// another provider already supplies it.
+    /// </summary>
+    /// <remarks>
+    /// On by default. Detection based providers usually place a boundary a few seconds earlier
+    /// than the chapter marker does, at the start of the fade rather than where the credits
+    /// card appears, which is the nicer place to skip from. Overwriting that would be a
+    /// regression, so the rule only fills what is missing.
+    /// </remarks>
+    public bool OnlyFillGaps { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets how far a derived boundary may sit from a known one and still count as
     /// agreement during calibration, in seconds.
     /// </summary>

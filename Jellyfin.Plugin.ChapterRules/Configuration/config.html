@@ -30,6 +30,18 @@
                     <span>Outro</span>
                 </label>
 
+                <label class="checkboxContainer">
+                    <input is="emby-checkbox" type="checkbox" id="OnlyFillGaps" />
+                    <span>Only fill gaps</span>
+                </label>
+                <div class="fieldDescription">
+                    Skip a type for an episode when another provider already supplies it.
+                    Detection based providers usually put the boundary a few seconds earlier than
+                    the chapter marker — at the start of the fade rather than where the credits
+                    card appears — which is the nicer place to skip from. Leave this on unless you
+                    want chapter rules to take precedence.
+                </div>
+
                 <h2>Calibration</h2>
 
                 <div class="inputContainer">
@@ -105,7 +117,7 @@
             var fields = ['ToleranceSeconds', 'MinimumConfidence', 'MinimumSamples',
                 'MinIntroSeconds', 'MaxIntroSeconds', 'MinRecapSeconds', 'MaxRecapSeconds',
                 'MinOutroSeconds', 'MaxOutroSeconds'];
-            var flags = ['EnableIntro', 'EnableRecap', 'EnableOutro'];
+            var flags = ['EnableIntro', 'EnableRecap', 'EnableOutro', 'OnlyFillGaps'];
 
             function typeName(t) {
                 return { 1: 'Commercial', 2: 'Preview', 3: 'Recap', 4: 'Outro', 5: 'Intro' }[t] || t;
