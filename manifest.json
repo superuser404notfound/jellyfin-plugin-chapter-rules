@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.2.0.0",
+        "changelog": "See https://github.com/superuser404notfound/jellyfin-plugin-chapter-rules/releases/tag/v0.2.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/superuser404notfound/jellyfin-plugin-chapter-rules/releases/download/v0.2.0.0/chapter-rules_0.2.0.0.zip",
+        "checksum": "f5931b70940ddccdbf891ee466063acd",
+        "timestamp": "2026-08-09T11:16:30Z"
+      },
+      {
         "version": "0.1.0.0",
         "changelog": "First release.",
         "targetAbi": "10.11.0.0",
