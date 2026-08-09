@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "3f1c9a52-8d47-4b6e-9a13-7c25e0d4b8f1",
+    "name": "Chapter Rules",
+    "description": "Derives intro, recap and outro segments from the positions of chapter markers, and works out per series which position means what by replaying candidate rules against segments that are already known to be correct. A rule is only used when it clears a confidence threshold on enough samples, so series where the pattern does not hold simply get no rule.",
+    "overview": "Segments from chapter positions, calibrated per series.",
+    "owner": "superuser404notfound",
+    "category": "General",
+    "versions": [
+      {
+        "version": "0.1.0.0",
+        "changelog": "First release.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/superuser404notfound/jellyfin-plugin-chapter-rules/releases/download/v0.1.0.0/chapter-rules_0.1.0.0.zip",
+        "checksum": "1f42f924ea7f726ca3e50c046033c857",
+        "timestamp": "2026-08-09T12:47:00Z"
+      }
+    ]
+  }
+]
