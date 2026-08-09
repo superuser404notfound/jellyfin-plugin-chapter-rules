@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Chapter Rules</title>
+</head>
+<body>
+<div id="ChapterRulesConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+     data-require="emby-input,emby-button,emby-checkbox">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="ChapterRulesConfigForm">
+                <h2>Segment types</h2>
+                <p class="fieldDescription">
+                    Which segment types may be derived from chapter positions. A type is only ever
+                    produced for a series where calibration found a rule that agrees with the
+                    segments already known for that series.
+                </p>
+
+                <label class="checkboxContainer">
+                    <input is="emby-checkbox" type="checkbox" id="EnableIntro" />
+                    <span>Intro</span>
+                </label>
+                <label class="checkboxContainer">
+                    <input is="emby-checkbox" type="checkbox" id="EnableRecap" />
+                    <span>Recap</span>
+                </label>
+                <label class="checkboxContainer">
+                    <input is="emby-checkbox" type="checkbox" id="EnableOutro" />
+                    <span>Outro</span>
+                </label>
+
+                <h2>Calibration</h2>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MinimumConfidence" step="0.01" min="0" max="1"
+                           label="Minimum confidence" />
+                    <div class="fieldDescription">
+                        Share of comparison samples a rule must reproduce before it is used. 0.9 means
+                        the rule has to agree with nine out of ten known segments.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MinimumSamples" min="1"
+                           label="Minimum samples" />
+                    <div class="fieldDescription">
+                        How many known segments a series needs before any rule is trusted for it.
+                        Series below this are reported but never written to.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="ToleranceSeconds" min="0"
+                           label="Agreement tolerance (seconds)" />
+                    <div class="fieldDescription">
+                        How far a derived boundary may sit from a known one and still count as a match.
+                    </div>
+                </div>
+
+                <h2>Plausibility windows</h2>
+                <p class="fieldDescription">
+                    A rule is skipped for an episode when the segment it would produce falls outside
+                    these lengths. This is what stops a chapter that happens to sit near the end of a
+                    file from being read as an eight minute outro.
+                </p>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MinIntroSeconds" label="Intro min (s)" />
+                </div>
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MaxIntroSeconds" label="Intro max (s)" />
+                </div>
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MinRecapSeconds" label="Recap min (s)" />
+                </div>
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MaxRecapSeconds" label="Recap max (s)" />
+                </div>
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MinOutroSeconds" label="Outro min (s)" />
+                </div>
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MaxOutroSeconds" label="Outro max (s)" />
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
+
+            <h2>Calibrated series</h2>
+            <p class="fieldDescription">
+                Filled in by the "Calibrate chapter rules" scheduled task.
+            </p>
+            <div id="ChapterRulesStatus"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = '3f1c9a52-8d47-4b6e-9a13-7c25e0d4b8f1';
+            var fields = ['ToleranceSeconds', 'MinimumConfidence', 'MinimumSamples',
+                'MinIntroSeconds', 'MaxIntroSeconds', 'MinRecapSeconds', 'MaxRecapSeconds',
+                'MinOutroSeconds', 'MaxOutroSeconds'];
+            var flags = ['EnableIntro', 'EnableRecap', 'EnableOutro'];
+
+            function typeName(t) {
+                return { 1: 'Commercial', 2: 'Preview', 3: 'Recap', 4: 'Outro', 5: 'Intro' }[t] || t;
+            }
+
+            function renderStatus(config) {
+                var el = document.querySelector('#ChapterRulesStatus');
+                var series = config.CalibratedSeries || [];
+                if (!series.length) {
+                    el.textContent = 'No calibration has run yet.';
+                    return;
+                }
+                var rows = series.map(function (s) {
+                    var rules = (s.Rules || []).map(function (r) {
+                        return typeName(r.Type) + ': chapter ' + r.Anchor +
+                            ' (' + Math.round(r.Confidence * 100) + '% of ' + r.Samples +
+                            ', ' + r.Gaps + ' gaps)';
+                    }).join('<br/>');
+                    return '<tr><td style="padding:4px 12px 4px 0">' + s.SeriesName +
+                        '</td><td style="padding:4px 0">' + (rules || '—') + '</td></tr>';
+                }).join('');
+                el.innerHTML = '<table>' + rows + '</table>';
+            }
+
+            document.querySelector('#ChapterRulesConfigPage')
+                .addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        fields.forEach(function (f) { document.querySelector('#' + f).value = config[f]; });
+                        flags.forEach(function (f) { document.querySelector('#' + f).checked = config[f]; });
+                        renderStatus(config);
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+            document.querySelector('#ChapterRulesConfigForm')
+                .addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        fields.forEach(function (f) {
+                            config[f] = parseFloat(document.querySelector('#' + f).value);
+                        });
+                        flags.forEach(function (f) {
+                            config[f] = document.querySelector('#' + f).checked;
+                        });
+                        ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    return false;
+                });
+        })();
+    </script>
+</div>
+</body>
+</html>

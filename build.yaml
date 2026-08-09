@@ -1,0 +1,21 @@
+name: "Chapter Rules"
+guid: "3f1c9a52-8d47-4b6e-9a13-7c25e0d4b8f1"
+version: 0.1.0.0
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+owner: "superuser404notfound"
+overview: "Derive intro, recap and outro segments from chapter positions, calibrated per series."
+description: >
+  Many rips carry chapter markers that already encode the structure of an episode:
+  the last chapter often starts exactly where the end credits begin, and an early
+  chapter marks the end of the "previously on" recap. Chapter Rules learns, per
+  series, which chapter position corresponds to which segment type by comparing
+  candidate rules against segments that are already known to be correct, and only
+  applies a rule when it agrees often enough. It fills gaps left by audio and
+  black-frame detection without touching segments that are already good.
+
+category: "General"
+artifacts:
+  - "Jellyfin.Plugin.ChapterRules.dll"
+changelog: |-
+  - Initial release.
