@@ -15,6 +15,7 @@ description: >
   black-frame detection without touching segments that are already good.
 
 category: "General"
+imageUrl: "https://raw.githubusercontent.com/superuser404notfound/jellyfin-plugin-chapter-rules/main/logo.png"
 artifacts:
   - "Jellyfin.Plugin.ChapterRules.dll"
 changelog: |-
