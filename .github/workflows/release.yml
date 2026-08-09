@@ -1,0 +1,103 @@
+name: Release
+
+# Tag a commit on main with e.g. v0.2.0.0 and this builds it, publishes the zip
+# as a release asset and appends the version to manifest.json so existing
+# installations pick it up. The manifest checksum must be the MD5 of the exact
+# zip that was uploaded, which is why both are produced in the same job.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Derive version from tag
+        id: v
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building $VERSION"
+
+      - name: Fail if the tag is not on main
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" HEAD \
+            || { echo "Tagged commit is not an ancestor of main"; exit 1; }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Build
+        run: >
+          dotnet build Jellyfin.Plugin.ChapterRules/Jellyfin.Plugin.ChapterRules.csproj
+          -c Release -warnaserror
+          -p:Version=${{ steps.v.outputs.version }}
+          -p:AssemblyVersion=${{ steps.v.outputs.version }}
+          -p:FileVersion=${{ steps.v.outputs.version }}
+
+      - name: Package
+        id: pkg
+        run: |
+          VERSION="${{ steps.v.outputs.version }}"
+          ZIP="chapter-rules_${VERSION}.zip"
+          cd Jellyfin.Plugin.ChapterRules/bin/Release/net9.0
+          zip -j "$GITHUB_WORKSPACE/$ZIP" Jellyfin.Plugin.ChapterRules.dll
+          cd "$GITHUB_WORKSPACE"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "md5=$(md5sum "$ZIP" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "${{ steps.pkg.outputs.zip }}" \
+            --title "$GITHUB_REF_NAME" --generate-notes
+
+      - name: Append version to manifest
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+          ZIP: ${{ steps.pkg.outputs.zip }}
+          MD5: ${{ steps.pkg.outputs.md5 }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json, os, datetime
+          version, zipname = os.environ["VERSION"], os.environ["ZIP"]
+          entry = {
+              "version": version,
+              "changelog": f"See https://github.com/{os.environ['REPO']}/releases/tag/{os.environ['TAG']}",
+              "targetAbi": "10.11.0.0",
+              "sourceUrl": f"https://github.com/{os.environ['REPO']}/releases/download/{os.environ['TAG']}/{zipname}",
+              "checksum": os.environ["MD5"],
+              "timestamp": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+          }
+          with open("manifest.json") as fh:
+              manifest = json.load(fh)
+          versions = manifest[0]["versions"]
+          versions[:] = [v for v in versions if v["version"] != version]
+          versions.insert(0, entry)
+          with open("manifest.json", "w") as fh:
+              json.dump(manifest, fh, indent=2)
+              fh.write("\n")
+          PY
+
+      - name: Commit manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git diff --staged --quiet && echo "manifest unchanged" && exit 0
+          git commit -m "Publish ${{ github.ref_name }} to the plugin manifest"
+          git push origin main
