@@ -1,6 +1,6 @@
 name: "Chapter Rules"
 guid: "3f1c9a52-8d47-4b6e-9a13-7c25e0d4b8f1"
-version: 0.1.0.0
+version: 0.2.0.0
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 owner: "superuser404notfound"

@@ -17,4 +17,8 @@
         <EmbeddedResource Include="Configuration\config.html" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="Jellyfin.Plugin.ChapterRules.Tests" />
+    </ItemGroup>
+
 </Project>

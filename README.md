@@ -15,8 +15,8 @@ recap.
 This plugin does not guess that those rules hold. It measures whether they do.
 
 For each series it replays candidate rules against the segments other providers already produced,
-scores how often each rule reproduces them, and only stores a rule that clears a confidence
-threshold on a sufficient number of samples. A series where the rule does not hold gets no rule
+scores how closely each rule reproduces them, and only stores a rule that agrees often enough
+*and* never strays far when it does disagree. A series where the rule does not hold gets no rule
 at all.
 
 ## Results on a real library
@@ -38,9 +38,9 @@ Just as important, the cases it **refused**:
 
 | Series | Why no rule |
 |---|---|
-| How I Met Your Mother | best candidate agreed on only 83 % of 183 samples |
+| How I Met Your Mother | agreed on 83 % of 183 samples, but missed by ~47 s every time it missed |
 | Modern Family | only 19 of 250 episodes have chapter markers |
-| One Piece (outro) | 55 % — anime puts the next-episode preview after the credits, so the last chapter is not the outro |
+| One Piece (outro) | 57 % — anime puts the next-episode preview after the credits, so the last chapter is not the outro |
 
 The One Piece case is the point of the design. A plugin that simply assumed "last chapter is the
 outro" would be wrong there. This one notices.
@@ -82,13 +82,27 @@ segment from other providers untouched.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| Minimum confidence | `0.9` | Share of samples a rule must reproduce before it is used |
+| Minimum confidence | `0.75` | Share of samples a rule must reproduce before it is used |
+| Maximum deviation (p90) | `20 s` | At least nine in ten episodes must land within this of the reference |
 | Minimum samples | `5` | Known segments a series needs before any rule is trusted |
 | Agreement tolerance | `10 s` | How far a derived boundary may sit from a known one and still count |
+| Only fill gaps | on | Skip a type when another provider already supplies it |
 | Intro / Recap / Outro windows | see UI | Plausible segment lengths per type |
 
-Lowering the confidence threshold enables borderline series. On the library above, Vampire
-Diaries' recap rule sits at 85 % and needs the threshold at `0.8` to be accepted.
+### Why there are two thresholds
+
+Confidence on its own is a bad gate, and the library above shows why. Two rules scored almost
+identically:
+
+| Rule | Agreement | Where it missed, it missed by |
+|---|---|---|
+| Vampire Diaries recap | 85 % | 13 s (median) |
+| How I Met Your Mother outro | 83 % | 47 s (median) |
+
+The first is a correct rule measured against imprecise references. The second is anchored on the
+wrong chapter and is off by the same three quarters of a minute every time. No confidence
+threshold separates 85 % from 83 %, so the deviation limit does it instead: the 90th percentile
+deviation is 11 s for the first and 26 s for the second.
 
 ## Relationship to other plugins
 

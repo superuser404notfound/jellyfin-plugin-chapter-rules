@@ -19,16 +19,6 @@ public class ChapterRuleSegmentProvider : IMediaSegmentProvider
 {
     private static readonly IReadOnlyList<MediaSegmentDto> _none = [];
 
-    /// <summary>
-    /// Options used when checking what another provider already supplied. This plugin's own
-    /// provider is excluded so a segment it wrote in an earlier pass does not read as
-    /// "someone else already covered this" and suppress the rule forever.
-    /// </summary>
-    private static readonly LibraryOptions _foreignOnly = new()
-    {
-        DisabledMediaSegmentProviders = ["Chapter Rules"],
-    };
-
     private readonly IItemRepository _itemRepository;
     private readonly IChapterRepository _chapterRepository;
     private readonly IServiceProvider _services;
@@ -102,8 +92,12 @@ public class ChapterRuleSegmentProvider : IMediaSegmentProvider
                 return _none;
             }
 
+            // Excluding our own output matters here too: a segment we wrote in an earlier pass
+            // would otherwise read as "another provider already covered this" and permanently
+            // suppress the rule that produced it.
+            var foreignOnly = EvidenceFilter.ExcludingSelf(manager, episode, Name);
             var foreign = await manager
-                .GetSegmentsAsync(episode, null, _foreignOnly, false)
+                .GetSegmentsAsync(episode, null, foreignOnly, true)
                 .ConfigureAwait(false);
 
             foreach (var segment in foreign)

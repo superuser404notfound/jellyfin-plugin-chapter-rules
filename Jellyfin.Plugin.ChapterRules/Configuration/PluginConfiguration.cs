@@ -46,7 +46,26 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>
     /// Gets or sets the share of comparison samples a rule must reproduce before it is used.
     /// </summary>
-    public double MinimumConfidence { get; set; } = 0.9;
+    /// <remarks>
+    /// This alone is a poor gate, which is why <see cref="MaximumDeviationSeconds"/> exists.
+    /// Two rules can agree on a near-identical share of samples and be worlds apart: one
+    /// missing by seconds because the reference itself is fuzzy, the other missing by the
+    /// better part of a minute because it is anchored on the wrong chapter.
+    /// </remarks>
+    public double MinimumConfidence { get; set; } = 0.75;
+
+    /// <summary>
+    /// Gets or sets the largest 90th-percentile deviation from the reference a rule may have,
+    /// in seconds. Hits count as zero deviation, so this is a statement about the whole
+    /// distribution: at least nine in ten episodes must land within this of where the existing
+    /// segment says the boundary is.
+    /// </summary>
+    /// <remarks>
+    /// The default is twice <see cref="ToleranceSeconds"/>. A rule that is correct but compared
+    /// against imprecise references sits just above the tolerance; a rule anchored on the wrong
+    /// chapter sits far above it, and no confidence threshold separates the two.
+    /// </remarks>
+    public double MaximumDeviationSeconds { get; set; } = 20;
 
     /// <summary>
     /// Gets or sets how many known segments a series must have before a rule is trusted.

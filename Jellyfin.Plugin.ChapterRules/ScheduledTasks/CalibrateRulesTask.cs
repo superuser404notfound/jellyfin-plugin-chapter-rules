@@ -19,15 +19,7 @@ namespace Jellyfin.Plugin.ChapterRules.ScheduledTasks;
 /// </summary>
 public class CalibrateRulesTask : IScheduledTask
 {
-    /// <summary>
-    /// Options used when reading the segments to calibrate against. This plugin's own provider
-    /// is excluded on purpose: treating our output as evidence for our own rules would be
-    /// circular and would cement a wrong rule instead of correcting it.
-    /// </summary>
-    private static readonly LibraryOptions _evidenceOptions = new()
-    {
-        DisabledMediaSegmentProviders = ["Chapter Rules"],
-    };
+    private LibraryOptions? _evidenceOptions;
 
     private readonly ILibraryManager _libraryManager;
     private readonly IChapterRepository _chapterRepository;
@@ -123,8 +115,9 @@ public class CalibrateRulesTask : IScheduledTask
                     {
                         entry.Rules.Add(rule);
                         _logger.LogInformation(
-                            "{Series}: {Type} anchored on chapter {Anchor} — {Confidence:P0} of {Samples} samples, {Gaps} gaps",
-                            series.Name, rule.Type, rule.Anchor, rule.Confidence, rule.Samples, rule.Gaps);
+                            "{Series}: {Type} anchored on chapter {Anchor} — {Confidence:P0} of {Samples} samples, p90 {P90:F0}s, {Gaps} gaps",
+                            series.Name, rule.Type, rule.Anchor, rule.Confidence, rule.Samples,
+                            rule.P90DeviationSeconds, rule.Gaps);
                     }
 
                     config.CalibratedSeries.Add(entry);
@@ -182,9 +175,13 @@ public class CalibrateRulesTask : IScheduledTask
 
             var known = new Dictionary<MediaSegmentType, (double Start, double End)>();
             // Every segment another provider supplied counts as evidence, whichever plugin
-            // produced it — except our own, which is filtered out via _evidenceOptions.
+            // produced it. Our own is filtered out; see EvidenceFilter for why that needs the
+            // provider id and filterByProvider: true rather than the obvious spelling.
+            _evidenceOptions ??= EvidenceFilter.ExcludingSelf(
+                _mediaSegmentManager, episode, Plugin.Instance?.Name ?? "Chapter Rules");
+
             var existing = await _mediaSegmentManager
-                .GetSegmentsAsync(episode, null, _evidenceOptions, false)
+                .GetSegmentsAsync(episode, null, _evidenceOptions, true)
                 .ConfigureAwait(false);
 
             foreach (var segment in existing)

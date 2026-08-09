@@ -27,6 +27,25 @@ public static class RuleCalibrator
         };
 
     /// <summary>
+    /// Nearest-rank percentile of a set of deviations.
+    /// </summary>
+    /// <param name="values">The values; not required to be sorted.</param>
+    /// <param name="fraction">The percentile as a fraction, e.g. 0.9.</param>
+    /// <returns>The value at that rank.</returns>
+    internal static double Percentile(IReadOnlyCollection<double> values, double fraction)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        if (values.Count == 0)
+        {
+            return 0;
+        }
+
+        var sorted = values.OrderBy(v => v).ToArray();
+        var index = (int)Math.Ceiling(fraction * sorted.Length) - 1;
+        return sorted[Math.Clamp(index, 0, sorted.Length - 1)];
+    }
+
+    /// <summary>
     /// Resolves an anchor index against a chapter list.
     /// </summary>
     /// <param name="anchor">The anchor; negative values count from the end.</param>
@@ -125,7 +144,8 @@ public static class RuleCalibrator
 
             foreach (var anchor in anchors)
             {
-                int hits = 0, samples = 0, gaps = 0;
+                var deviations = new List<double>();
+                var gaps = 0;
 
                 foreach (var episode in episodes)
                 {
@@ -137,17 +157,11 @@ public static class RuleCalibrator
 
                     if (episode.Known.TryGetValue(type, out var known))
                     {
-                        samples++;
-
                         // Compare on the boundary the rule actually predicts: an outro rule
                         // predicts where the credits start, a recap rule where they end.
                         var predicted = type == MediaSegmentType.Recap ? derived.Value.End : derived.Value.Start;
                         var actual = type == MediaSegmentType.Recap ? known.End : known.Start;
-
-                        if (Math.Abs(predicted - actual) <= config.ToleranceSeconds)
-                        {
-                            hits++;
-                        }
+                        deviations.Add(Math.Abs(predicted - actual));
                     }
                     else
                     {
@@ -155,12 +169,12 @@ public static class RuleCalibrator
                     }
                 }
 
-                if (samples == 0)
+                if (deviations.Count == 0)
                 {
                     continue;
                 }
 
-                var confidence = (double)hits / samples;
+                var confidence = (double)deviations.Count(d => d <= config.ToleranceSeconds) / deviations.Count;
                 if (best is null || confidence > best.Confidence)
                 {
                     best = new ChapterRule
@@ -168,15 +182,17 @@ public static class RuleCalibrator
                         Type = type,
                         Anchor = anchor,
                         Confidence = confidence,
-                        Samples = samples,
+                        Samples = deviations.Count,
                         Gaps = gaps,
+                        P90DeviationSeconds = Percentile(deviations, 0.9),
                     };
                 }
             }
 
             if (best is not null
                 && best.Samples >= config.MinimumSamples
-                && best.Confidence >= config.MinimumConfidence)
+                && best.Confidence >= config.MinimumConfidence
+                && best.P90DeviationSeconds <= config.MaximumDeviationSeconds)
             {
                 accepted.Add(best);
             }

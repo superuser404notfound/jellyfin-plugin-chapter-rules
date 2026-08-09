@@ -48,8 +48,22 @@
                     <input is="emby-input" type="number" id="MinimumConfidence" step="0.01" min="0" max="1"
                            label="Minimum confidence" />
                     <div class="fieldDescription">
-                        Share of comparison samples a rule must reproduce before it is used. 0.9 means
-                        the rule has to agree with nine out of ten known segments.
+                        Share of comparison samples a rule must reproduce before it is used. 0.75
+                        means the rule has to agree with three out of four known segments. This is a
+                        floor, not the real gate — the deviation limit below does the discriminating
+                        work.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <input is="emby-input" type="number" id="MaximumDeviationSeconds" min="0"
+                           label="Maximum deviation, 90th percentile (seconds)" />
+                    <div class="fieldDescription">
+                        At least nine in ten episodes must land within this of where the existing
+                        segment says the boundary is. This is the setting that separates a rule
+                        that is right but compared against fuzzy references from one that is
+                        anchored on the wrong chapter — confidence alone cannot tell them apart,
+                        because both look like "agrees with roughly four out of five".
                     </div>
                 </div>
 
@@ -114,7 +128,7 @@
     <script type="text/javascript">
         (function () {
             var pluginId = '3f1c9a52-8d47-4b6e-9a13-7c25e0d4b8f1';
-            var fields = ['ToleranceSeconds', 'MinimumConfidence', 'MinimumSamples',
+            var fields = ['ToleranceSeconds', 'MinimumConfidence', 'MinimumSamples', 'MaximumDeviationSeconds',
                 'MinIntroSeconds', 'MaxIntroSeconds', 'MinRecapSeconds', 'MaxRecapSeconds',
                 'MinOutroSeconds', 'MaxOutroSeconds'];
             var flags = ['EnableIntro', 'EnableRecap', 'EnableOutro', 'OnlyFillGaps'];
@@ -134,7 +148,8 @@
                     var rules = (s.Rules || []).map(function (r) {
                         return typeName(r.Type) + ': chapter ' + r.Anchor +
                             ' (' + Math.round(r.Confidence * 100) + '% of ' + r.Samples +
-                            ', ' + r.Gaps + ' gaps)';
+                            ', p90 ' + Math.round(r.P90DeviationSeconds) + 's, ' +
+                            r.Gaps + ' gaps)';
                     }).join('<br/>');
                     return '<tr><td style="padding:4px 12px 4px 0">' + s.SeriesName +
                         '</td><td style="padding:4px 0">' + (rules || '—') + '</td></tr>';

@@ -40,6 +40,12 @@ public class ChapterRule
     public int Samples { get; set; }
 
     /// <summary>
+    /// Gets or sets the 90th-percentile deviation from the reference boundary, in seconds.
+    /// Low values mean the rule agrees closely even where it does not agree exactly.
+    /// </summary>
+    public double P90DeviationSeconds { get; set; }
+
+    /// <summary>
     /// Gets or sets the number of episodes where the rule applies but no segment exists yet.
     /// </summary>
     public int Gaps { get; set; }

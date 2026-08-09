@@ -25,6 +25,9 @@ jobs:
           dotnet build Jellyfin.Plugin.ChapterRules/Jellyfin.Plugin.ChapterRules.csproj
           -c Release --no-restore -warnaserror
 
+      - name: Test
+        run: dotnet test Jellyfin.Plugin.ChapterRules.Tests/Jellyfin.Plugin.ChapterRules.Tests.csproj -c Release
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
