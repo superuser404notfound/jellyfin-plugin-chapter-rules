@@ -67,8 +67,16 @@ Requires Jellyfin 10.11.
 2. Place it in `<config>/plugins/Chapter Rules_<version>/`.
 3. Restart Jellyfin.
 4. Run the **Calibrate chapter rules** scheduled task (it also runs daily at 03:00).
+5. Run Jellyfin's own **Extract Media Segments** task.
 
-Calibration only writes rules. Segments appear on the next media segment refresh.
+The two steps are separate on purpose. Calibration only works out and stores the rules; it writes
+no segments. Segments are produced when Jellyfin runs its segment providers, and that happens in
+the *Extract Media Segments* scheduled task — not during a library scan and not when refreshing a
+single item, which is a common thing to try first.
+
+Measured on the library described above, the second step added 29 outros across three series in
+under a minute, every one of them for an episode that previously had none, and left every existing
+segment from other providers untouched.
 
 ## Configuration
 
